@@ -427,6 +427,9 @@ def run(cfg: RunConfig) -> Dict[str, Any]:
         raise ValueError(f"unknown numerics {cfg.numerics!r}")
     no_upload_guard.install(cfg.allow_hosts)
     no_upload_guard.reset_attempts()
+    # Record the code state at start, before a long run can overlap new commits.
+    git_commit = _git("rev-parse", "HEAD")
+    git_dirty = (_git("status", "--porcelain", "--untracked-files=no", "--", ".") or "") != "" if git_commit else None
 
     deterministic = cfg.numerics == "reference"
     if deterministic:
@@ -541,8 +544,8 @@ def run(cfg: RunConfig) -> Dict[str, Any]:
                 "schema_version": schema.SCHEMA_VERSION,
                 "run_id": uuid.uuid4().hex,
                 "created_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-                "git_commit": _git("rev-parse", "HEAD"),
-                "git_dirty": (_git("status", "--porcelain", "--untracked-files=no", "--", ".") or "") != "" if _git("rev-parse", "HEAD") else None,
+                "git_commit": git_commit,
+                "git_dirty": git_dirty,
                 "target_tag": cfg.target_tag,
             },
             "environment": collect_environment(device),
