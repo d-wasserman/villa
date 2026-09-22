@@ -379,6 +379,57 @@ def create_inference_dataloader(
         logger.error(f"Error creating dataloader: {e}")
         raise
 
+# ----------------------------- Runtime ---------------------------------------
+def configure_runtime(
+    model: InferenceModel,
+    device: torch.device,
+    compile_enabled: bool = True,
+    compile_mode: str = "reduce-overhead",
+    cudagraphs: bool = False,
+    profiler=None,
+) -> None:
+    """
+    Apply performance toggles to a loaded model wrapper: TF32, Inductor cache
+    settings, torch.compile (replaces model.model in place) and a batch-1 warmup.
+    """
+    # TF32 on Ampere+ gives fast GEMMs with tiny accuracy impact for this task.
+    try:
+        torch.backends.cuda.matmul.allow_tf32 = True
+        torch.set_float32_matmul_precision("high")
+    except Exception:
+        pass
+    # torch.compile defaults
+    if compile_enabled and hasattr(torch, "compile"):
+        with scoped_timer(profiler, "compile_warmup_seconds", cuda_sync=device.type == "cuda"):
+            # Persist Inductor cache across runs (huge win after the first run)
+            os.environ.setdefault("TORCHINDUCTOR_CACHE_DIR", os.path.abspath("./inductor_cache"))
+            # If not doing max tuning, disable heavy autotuning to avoid OOM spam & overhead
+            if compile_mode != "max-autotune":
+                os.environ.setdefault("TORCHINDUCTOR_MAX_AUTOTUNE", "0")
+                os.environ.setdefault("TORCHINDUCTOR_MAX_AUTOTUNE_GEMM", "0")
+                os.environ.setdefault("TORCHINDUCTOR_MAX_AUTOTUNE_POINTWISE", "0")
+            # Optional: CUDA graphs (static shapes); enable if you don’t hit driver bugs
+            if cudagraphs:
+                os.environ.setdefault("TORCHINDUCTOR_CUDAGRAPHS", "1")
+            # Compile
+            # Access the underlying model from the wrapper
+            target = model.model.module if isinstance(model.model, nn.DataParallel) else model.model
+            model_compiled = torch.compile(target, mode=compile_mode, fullgraph=True, dynamic=False)
+            if isinstance(model.model, nn.DataParallel):
+                model.model.module = model_compiled
+            else:
+                model.model = model_compiled
+            logger.info(f"Enabled torch.compile (mode={compile_mode})")
+            # Tiny warmup to trigger compilation before the big loop (hides first-iter cost)
+            try:
+                dummy = torch.zeros((1, 1, CFG.in_chans, CFG.size, CFG.size), device=device)
+                with torch.inference_mode():
+                    with torch.autocast(device_type=("cuda" if device.type == "cuda" else "cpu"), enabled=CFG.autocast):
+                        _ = model.forward(dummy)
+                del dummy
+            except Exception as e:
+                logger.warning(f"Warmup after compile failed (continuing un-warmed): {e}")
+
 # ----------------------------- Inference -------------------------------------
 def predict_fn(
     test_loader: DataLoader,

@@ -80,6 +80,13 @@ class InferenceRuntimeTests(unittest.TestCase):
         self.assertTrue(seen)
         self.assertFalse(any(seen))
 
+    def test_configure_runtime_without_compile_keeps_model(self):
+        probe = _AutocastProbe()
+        wrapper = _Wrapper(probe)
+        inference.configure_runtime(wrapper, torch.device("cpu"), compile_enabled=False)
+        self.assertIs(wrapper.model, probe)
+        self.assertTrue(torch.backends.cuda.matmul.allow_tf32)
+
 
 if __name__ == "__main__":
     unittest.main()

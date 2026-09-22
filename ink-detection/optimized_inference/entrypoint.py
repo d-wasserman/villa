@@ -696,8 +696,7 @@ def run_inference_step(inputs: Inputs, profiler: Optional[WorkflowProfiler] = No
     """Execute the inference step (either standard or partitioned mode)."""
     # Import torch and related dependencies only when doing inference
     import torch
-    from torch.nn import DataParallel
-    from inference import run_inference, CFG
+    from inference import run_inference, configure_runtime, CFG
     from processing import path_exists
 
     # Configure inference parameters
@@ -784,45 +783,14 @@ def run_inference_step(inputs: Inputs, profiler: Optional[WorkflowProfiler] = No
             )
 
     # -------- Performance toggles ------------------------------------------------
-    # TF32 on Ampere+ gives fast GEMMs with tiny accuracy impact for this task.
-    try:
-        torch.backends.cuda.matmul.allow_tf32 = True
-        torch.set_float32_matmul_precision("high")
-    except Exception:
-        pass
-    # torch.compile defaults
-    COMPILE = os.getenv("COMPILE", "1") == "1" and hasattr(torch, "compile")
-    COMPILE_MODE = os.getenv("COMPILE_MODE", "reduce-overhead")  # <- default changed
-    if COMPILE:
-        with scoped_timer(profiler, "compile_warmup_seconds", cuda_sync=device.type == "cuda"):
-            # Persist Inductor cache across runs (huge win after the first run)
-            os.environ.setdefault("TORCHINDUCTOR_CACHE_DIR", os.path.abspath("./inductor_cache"))
-            # If not doing max tuning, disable heavy autotuning to avoid OOM spam & overhead
-            if COMPILE_MODE != "max-autotune":
-                os.environ.setdefault("TORCHINDUCTOR_MAX_AUTOTUNE", "0")
-                os.environ.setdefault("TORCHINDUCTOR_MAX_AUTOTUNE_GEMM", "0")
-                os.environ.setdefault("TORCHINDUCTOR_MAX_AUTOTUNE_POINTWISE", "0")
-            # Optional: CUDA graphs (static shapes); enable if you don’t hit driver bugs
-            if os.getenv("CUDAGRAPHS", "0") == "1":
-                os.environ.setdefault("TORCHINDUCTOR_CUDAGRAPHS", "1")
-            # Compile
-            # Access the underlying model from the wrapper
-            target = model.model.module if isinstance(model.model, DataParallel) else model.model
-            model_compiled = torch.compile(target, mode=COMPILE_MODE, fullgraph=True, dynamic=False)
-            if isinstance(model.model, DataParallel):
-                model.model.module = model_compiled
-            else:
-                model.model = model_compiled
-            logger.info(f"Enabled torch.compile (mode={COMPILE_MODE})")
-            # Tiny warmup to trigger compilation before the big loop (hides first-iter cost)
-            try:
-                dummy = torch.zeros((1, 1, CFG.in_chans, CFG.size, CFG.size), device=device)
-                with torch.inference_mode():
-                    with torch.autocast(device_type=("cuda" if device.type == "cuda" else "cpu"), enabled=True):
-                        _ = model.forward(dummy)
-                del dummy
-            except Exception as e:
-                logger.warning(f"Warmup after compile failed (continuing un-warmed): {e}")
+    configure_runtime(
+        model,
+        device,
+        compile_enabled=os.getenv("COMPILE", "1") == "1",
+        compile_mode=os.getenv("COMPILE_MODE", "reduce-overhead"),
+        cudagraphs=os.getenv("CUDAGRAPHS", "0") == "1",
+        profiler=profiler,
+    )
 
     # Determine reverse option similar to local test
     if inputs.force_reverse:
