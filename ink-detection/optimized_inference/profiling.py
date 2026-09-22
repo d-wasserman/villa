@@ -127,6 +127,7 @@ STAT_METRICS = (
     "vram_used_bytes_max",
     "vram_used_bytes_peak",
     "gpu_temperature_celsius_max",
+    "gpu_sm_clock_mhz_min",
     "gpu_power_watts_max",
     "torch_cuda_max_memory_allocated_bytes",
     "torch_cuda_max_memory_reserved_bytes",
@@ -873,6 +874,8 @@ class WorkflowProfiler(MetricSink):
                 )
             with suppress(Exception):
                 row["gpu_power_watts"] = float(pynvml.nvmlDeviceGetPowerUsage(self._nvml_handle)) / 1000.0
+            with suppress(Exception):
+                row["gpu_sm_clock_mhz"] = int(pynvml.nvmlDeviceGetClockInfo(self._nvml_handle, pynvml.NVML_CLOCK_SM))
 
         if torch is not None and hasattr(torch, "cuda") and torch.cuda.is_available():
             with suppress(Exception):
@@ -1031,6 +1034,7 @@ class WorkflowProfiler(MetricSink):
         vram_values = [row["vram_used_bytes"] for row in self.samples if row.get("vram_used_bytes") is not None]
         gpu_temp_values = [row["gpu_temperature_celsius"] for row in self.samples if row.get("gpu_temperature_celsius") is not None]
         gpu_power_values = [row["gpu_power_watts"] for row in self.samples if row.get("gpu_power_watts") is not None]
+        gpu_clock_values = [row["gpu_sm_clock_mhz"] for row in self.samples if row.get("gpu_sm_clock_mhz") is not None]
 
         self._set_stat_triplet("process_cpu_utilization_percent", process_cpu_values, pct_flag=FLAG_APPROXIMATE)
         self._set_stat_triplet("system_cpu_utilization_percent", system_cpu_values, pct_flag=FLAG_APPROXIMATE)
@@ -1048,6 +1052,9 @@ class WorkflowProfiler(MetricSink):
             self.set_metric("gpu_temperature_celsius_max", max(gpu_temp_values), flag=FLAG_APPROXIMATE, semantics=SEMANTICS_PEAK)
         if gpu_power_values:
             self.set_metric("gpu_power_watts_max", max(gpu_power_values), flag=FLAG_APPROXIMATE, semantics=SEMANTICS_PEAK)
+        if gpu_clock_values:
+            # Minimum SM clock over the run; a drop flags thermal or power throttling.
+            self.set_metric("gpu_sm_clock_mhz_min", min(gpu_clock_values), flag=FLAG_APPROXIMATE, semantics=SEMANTICS_SAMPLE)
 
         if torch is not None and hasattr(torch, "cuda") and torch.cuda.is_available():
             with suppress(Exception):
