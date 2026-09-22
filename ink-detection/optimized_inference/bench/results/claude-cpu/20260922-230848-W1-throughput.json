@@ -1,0 +1,220 @@
+{
+  "identity": {
+    "schema_version": 1,
+    "run_id": "8fee21097fd54800a86b47e3af12bc59",
+    "created_utc": "2026-09-22T23:08:47Z",
+    "git_commit": "808e9b0f160d77e701369df5c9eff8168ab61a02",
+    "git_dirty": false,
+    "target_tag": "claude-cpu"
+  },
+  "environment": {
+    "device": "cpu",
+    "gpu_name": null,
+    "gpu_compute_capability": null,
+    "gpu_driver": null,
+    "torch_version": "2.10.0+cu128",
+    "cuda_version": "12.8",
+    "cudnn_version": 91002,
+    "os": "Linux 6.18.44-fc-v37",
+    "machine": "x86_64",
+    "python_version": "3.11.15",
+    "cpu_model": "Intel(R) Xeon(R) Processor @ 2.10GHz",
+    "ram_bytes": 16877547520,
+    "cpu_count_visible": 4
+  },
+  "config": {
+    "workload": "W1",
+    "mode": "throughput",
+    "numerics": "production",
+    "autocast": false,
+    "deterministic": false,
+    "compile_mode": "off",
+    "inductor_cache": "n/a",
+    "inductor_cache_state": "n/a",
+    "model": "resnet3d-152-3d-decoder",
+    "weights": "random",
+    "weights_sha256": null,
+    "seed": 0,
+    "batch_size": 2,
+    "workers": 2,
+    "prefetch_factor": 2,
+    "tile_size": 256,
+    "stride": 128,
+    "in_chans": 62,
+    "input_shape": [
+      512,
+      512,
+      62
+    ],
+    "pixel_um": 2.4,
+    "warmup": 1,
+    "repeats": 3,
+    "crop_ids": [],
+    "cfg": {
+      "autocast": false,
+      "batch_size": 2,
+      "encoder_depth": 5,
+      "gaussian_sigma": 0.0,
+      "in_chans": 62,
+      "max_clip_value": 200,
+      "min_valid_ratio": 0.0,
+      "model_type": "resnet3d-152-3d-decoder",
+      "num_parts": 1,
+      "part_id": 0,
+      "prefetch_factor": 2,
+      "size": 256,
+      "stride": 128,
+      "tile_size": 256,
+      "use_hann_window": true,
+      "use_zarr_compression": true,
+      "workers": 2,
+      "zarr_output_dir": "/tmp/partitions"
+    },
+    "cli": {
+      "workload": "W1",
+      "target_tag": "claude-cpu",
+      "mode": "throughput",
+      "numerics": "production",
+      "autocast": "auto",
+      "device": "auto",
+      "model": "resnet3d-152-3d-decoder",
+      "weights": "random",
+      "batch_size": 2,
+      "workers": 2,
+      "prefetch_factor": 2,
+      "tile_size": 256,
+      "stride": 128,
+      "in_chans": 62,
+      "size": 512,
+      "w0_iters": 3,
+      "compile_mode": "off",
+      "inductor_cache": "cold",
+      "inductor_cache_dir": "",
+      "warmup": 1,
+      "repeats": 3,
+      "seed": 0,
+      "pixel_um": 2.4,
+      "out_dir": "",
+      "allow_hosts": [],
+      "torch_trace": false,
+      "sample_interval_ms": 500
+    }
+  },
+  "timings": {
+    "model_build_seconds": 1.108063599999923,
+    "compile_seconds": null,
+    "first_batch_seconds": 24.413875150999957,
+    "repeat_wall_seconds": [
+      71.99682755999993,
+      70.43978451199996,
+      68.89634617499996
+    ],
+    "tiles_total": 9,
+    "tiles_forwarded": [
+      9,
+      9,
+      9
+    ],
+    "tiles_per_second": {
+      "n": 3,
+      "mean": 0.1278017442122699,
+      "p50": 0.12776870432456788,
+      "p95": 0.13034478875755373,
+      "min": 0.12500550795102297,
+      "max": 0.13063102036121882,
+      "cv": 0.0220098853629648
+    },
+    "seconds_per_tile": {
+      "n": 3,
+      "mean": 7.827146601740735,
+      "p50": 7.826642723555551,
+      "p95": 7.982347028355547,
+      "min": 7.655149574999996,
+      "max": 7.999647506666658,
+      "cv": 0.0220066810222165
+    },
+    "device_seconds_per_cm2_gross": {
+      "n": 3,
+      "mean": 4665.342928016624,
+      "p50": 4665.042593214243,
+      "p95": 4757.849590990273,
+      "min": 4562.824711203572,
+      "max": 4768.161479632055,
+      "cv": 0.022006681022216507
+    },
+    "device_seconds_per_cm2_net": {
+      "n": 3,
+      "mean": 7464.548684826597,
+      "p50": 7464.06814914279,
+      "p95": 7612.559345584437,
+      "min": 7300.519537925716,
+      "max": 7629.058367411287,
+      "cv": 0.022006681022216482
+    },
+    "steady_state_tiles_per_second": {
+      "n": 3,
+      "mean": 0.13854460280262929,
+      "p50": 0.13827422795599192,
+      "p95": 0.1410706620440031,
+      "min": 0.13597820350922496,
+      "max": 0.141381376942671,
+      "cv": 0.019572865680092345
+    },
+    "stage_seconds": null,
+    "stage_coverage": null,
+    "stage_breakdown_accepted": null,
+    "area_pixels": {
+      "gross": 262144,
+      "net": 163840
+    }
+  },
+  "telemetry": {
+    "per_repeat": [
+      {
+        "gpu_temperature_c_max": null,
+        "gpu_sm_clock_mhz_min": null,
+        "gpu_utilization_percent_avg": null,
+        "peak_vram_bytes": null,
+        "peak_host_rss_bytes": 4711960576,
+        "wall_seconds": 71.99682755999993
+      },
+      {
+        "gpu_temperature_c_max": null,
+        "gpu_sm_clock_mhz_min": null,
+        "gpu_utilization_percent_avg": null,
+        "peak_vram_bytes": null,
+        "peak_host_rss_bytes": 4718510080,
+        "wall_seconds": 70.43978451199996
+      },
+      {
+        "gpu_temperature_c_max": null,
+        "gpu_sm_clock_mhz_min": null,
+        "gpu_utilization_percent_avg": null,
+        "peak_vram_bytes": null,
+        "peak_host_rss_bytes": 4776996864,
+        "wall_seconds": 68.89634617499996
+      }
+    ],
+    "gpu_temperature_c_max": null,
+    "gpu_sm_clock_mhz_min": null,
+    "gpu_utilization_percent_avg": null,
+    "peak_vram_bytes": null,
+    "peak_host_rss_bytes": 4776996864
+  },
+  "quality": {
+    "output_sha256": [
+      "7a92f696d2ee8c7a6b081ab51b05e1753beed635e875a5aadd1b6a534edf93ae",
+      "7a92f696d2ee8c7a6b081ab51b05e1753beed635e875a5aadd1b6a534edf93ae",
+      "7a92f696d2ee8c7a6b081ab51b05e1753beed635e875a5aadd1b6a534edf93ae"
+    ],
+    "outputs_identical_across_repeats": true,
+    "nonfinite_outputs": null,
+    "note": "W0/W1 hashes are for determinism checks only; random weights say nothing about fp16 overflow"
+  },
+  "network": {
+    "guard_active": true,
+    "allow_hosts": [],
+    "hosts_contacted": [],
+    "hosts_blocked": []
+  }
+}
