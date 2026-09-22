@@ -39,6 +39,33 @@ python -m bench validate FILE.json     # schema check
 Results go to `bench/results/<target-tag>/<timestamp>-<workload>-<mode>[-<tag>].json`
 unless `--out` is given. They are small JSON summaries, never prediction arrays.
 
+## Run matrix per machine
+
+**GTX 1650 laptop (Ubuntu 24.04).** Plug in and let the GPU cool between
+runs. Batch 4 may not fit in 4 GB with CUDA graphs.
+
+```bash
+for bs in 1 2; do
+  python -m bench run --workload W0 --target-tag xps-1650 --batch-size $bs --w0-iters 5 --tag bs$bs
+done
+for c in off default reduce-overhead; do
+  for w in 0 2 4; do
+    python -m bench run --workload W1 --target-tag xps-1650 --batch-size 2 --workers $w \
+        --compile $c --inductor-cache cold --tag c-$c-w$w
+  done
+  python -m bench run --workload W1 --target-tag xps-1650 --mode attribution --batch-size 2 \
+      --workers 4 --compile $c --tag c-$c
+done
+# warm-cache compile time: run the same config twice with --inductor-cache warm
+```
+
+**Colab T4.** Open `bench/colab.ipynb`, select a T4 runtime and run all
+cells. It sweeps W0 over batch 1–16 until out of memory, runs W1 with
+compile off and reduce-overhead, and zips the result JSONs for download.
+
+**Claude CPU container.** Use `--size 512` for W1; a tile takes several
+seconds on CPU.
+
 ## Options that matter
 
 | Option | Values | Notes |
