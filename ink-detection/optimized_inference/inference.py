@@ -116,6 +116,10 @@ class InferenceConfig:
     # Compression settings
     use_zarr_compression: bool = True
 
+    # Mixed precision: autocast is fp16 on CUDA and bf16 on CPU. Benchmarks
+    # disable it to run CPU inference in fp32.
+    autocast: bool = True
+
 CFG = InferenceConfig()
 
 # --------------------- Disk-backed / Array-backed layers ---------------------
@@ -437,7 +441,7 @@ def predict_fn(
 
                 amp_device = "cuda" if device.type == "cuda" else "cpu"
                 with scoped_timer(profiler, "forward_seconds", cuda_sync=detailed_sync):
-                    with torch.autocast(device_type=amp_device, enabled=True):
+                    with torch.autocast(device_type=amp_device, enabled=CFG.autocast):
                         y_preds = model.forward(images)  # Model-specific forward
                     y_preds = torch.sigmoid(y_preds)
                     y_preds_resized = F.interpolate(
