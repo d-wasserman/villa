@@ -1,0 +1,37 @@
+name: optimized_inference bench tests (fork)
+
+# CPU-only unit tests for ink-detection/optimized_inference and its benchmark
+# harness. Fork-only: the job is skipped in any other repository.
+
+on:
+  push:
+    paths:
+      - "ink-detection/optimized_inference/**"
+      - ".github/workflows/optimized-inference-bench-tests.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    if: github.repository == 'd-wasserman/villa'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: ink-detection/optimized_inference
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install CPU PyTorch and requirements
+        run: |
+          python -m pip install --upgrade pip
+          pip install "torch==2.10.*" --index-url https://download.pytorch.org/whl/cpu
+          pip install -r requirements-cpu-only.txt setuptools
+      - name: Run tests
+        env:
+          NO_ALBUMENTATIONS_UPDATE: "1"
+        run: python -m unittest discover -s tests -t . -v
